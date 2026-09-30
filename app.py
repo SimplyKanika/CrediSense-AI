@@ -96,10 +96,28 @@ st.sidebar.info(
 # INPUT SECTION
 # ---------------------------------------------------
 
+DEFAULT_VALUES = {
+    "age": 25,
+    "annual_income": 600000,
+    "credit_score": 720,
+    "loan_amount": 300000,
+    "loan_term": 12,
+    "existing_debt": 50000,
+    "employment": "Salaried",
+    "previous_defaults": 0,
+    "dependents": 2
+}
+
+
+def reset_inputs():
+    """Reset all applicant input fields to their default values."""
+    for key, value in DEFAULT_VALUES.items():
+        st.session_state[key] = value
+
+
 st.header("👤 Applicant Information")
 
 col1, col2, col3 = st.columns(3)
-
 
 with col1:
 
@@ -107,22 +125,25 @@ with col1:
         "Age",
         min_value=18,
         max_value=80,
-        value=25
+        value=DEFAULT_VALUES["age"],
+        key="age"
     )
 
     annual_income = st.number_input(
         "Annual Income (₹)",
         min_value=50000,
         max_value=5000000,
-        value=600000,
-        step=50000
+        value=DEFAULT_VALUES["annual_income"],
+        step=50000,
+        key="annual_income"
     )
 
     credit_score = st.slider(
         "Credit Score",
         min_value=300,
         max_value=850,
-        value=720
+        value=DEFAULT_VALUES["credit_score"],
+        key="credit_score"
     )
 
 
@@ -132,21 +153,27 @@ with col2:
         "Loan Amount (₹)",
         min_value=10000,
         max_value=3000000,
-        value=300000,
-        step=10000
+        value=DEFAULT_VALUES["loan_amount"],
+        step=10000,
+        key="loan_amount"
     )
 
     loan_term = st.selectbox(
         "Loan Term (Months)",
-        [12, 24, 36, 48, 60]
+        [12, 24, 36, 48, 60],
+        index=[12, 24, 36, 48, 60].index(
+            DEFAULT_VALUES["loan_term"]
+        ),
+        key="loan_term"
     )
 
     existing_debt = st.number_input(
         "Existing Debt (₹)",
         min_value=0,
         max_value=2000000,
-        value=50000,
-        step=10000
+        step=10000,
+        value=DEFAULT_VALUES["existing_debt"],
+        key="existing_debt"
     )
 
 
@@ -158,48 +185,54 @@ with col3:
             "Salaried",
             "Self Employed",
             "Unemployed"
-        ]
+        ],
+        index=[
+            "Salaried",
+            "Self Employed",
+            "Unemployed"
+        ].index(DEFAULT_VALUES["employment"]),
+        key="employment"
     )
 
     previous_defaults = st.number_input(
         "Previous Defaults",
         min_value=0,
         max_value=5,
-        value=0
+        value=DEFAULT_VALUES["previous_defaults"],
+        key="previous_defaults"
     )
 
     dependents = st.number_input(
         "Number of Dependents",
         min_value=0,
         max_value=10,
-        value=2
+        value=DEFAULT_VALUES["dependents"],
+        key="dependents"
     )
 
 
 # ---------------------------------------------------
-# CONVERT EMPLOYMENT TO NUMERIC
-# ---------------------------------------------------
-
-employment_mapping = {
-    "Unemployed": 0,
-    "Salaried": 1,
-    "Self Employed": 2
-}
-
-employment_encoded = employment_mapping[employment]
-
-
-# ---------------------------------------------------
-# PREDICTION BUTTON
+# ACTION BUTTONS
 # ---------------------------------------------------
 
 st.divider()
 
-predict_button = st.button(
-    "🔍 ASSESS CREDIT RISK",
-    use_container_width=True
-)
+button_col1, button_col2 = st.columns(2)
 
+with button_col1:
+
+    predict_button = st.button(
+        "🔍 ASSESS CREDIT RISK",
+        use_container_width=True
+    )
+
+with button_col2:
+
+    st.button(
+        "🔄 RESET INPUTS",
+        use_container_width=True,
+        on_click=reset_inputs
+    )
 
 # ---------------------------------------------------
 # PREDICTION
