@@ -440,18 +440,14 @@ if predict_button:
     with result_col3:
 
         if prediction == 1:
-
-            st.metric(
-                "Recommendation",
-                "APPROVE"
-            )
-
+            recommendation = "APPROVE"
         else:
+            recommendation = "REVIEW"
 
-            st.metric(
-                "Recommendation",
-                "REVIEW"
-            )
+        st.metric(
+            "Recommendation",
+            recommendation
+        )
 
 
     # -----------------------------------------------
@@ -592,6 +588,56 @@ if predict_button:
 
         st.write(factor)
 
+        # Downloadable assessment report
+    st.subheader("📥 Download Assessment Report")
+
+    report_text = f"""
+    CREDISENSE AI — CREDIT ASSESSMENT REPORT
+    ========================================
+
+    Applicant Information
+    ---------------------
+    Age: {age}
+    Annual Income: ₹{annual_income:,.0f}
+    Credit Score: {credit_score}
+    Loan Amount: ₹{loan_amount:,.0f}
+    Loan Term: {loan_term} months
+    Existing Debt: ₹{existing_debt:,.0f}
+    Employment: {employment}
+    Previous Defaults: {previous_defaults}
+    Dependents: {dependents}
+
+    Financial Indicators
+    --------------------
+    Debt-to-Income Ratio: {dti:.1f}%
+    Loan-to-Income Ratio: {lti:.1f}%
+
+    Assessment
+    ----------
+    Approval Probability: {approval_probability:.1f}%
+    Risk Level: {risk_level}
+    Recommendation: {recommendation}
+
+    Risk Factors
+    ------------
+    """
+
+    for factor in factors:
+        report_text += f"- {factor}\n"
+
+    report_text += """
+    DISCLAIMER
+    ----------
+    This is an educational ML prototype using synthetic training data
+    and should not be used for actual lending decisions.
+    """
+
+    st.download_button(
+        label="📥 Download Assessment Report",
+        data=report_text,
+        file_name="credit_assessment_report.txt",
+        mime="text/plain"
+    )
 
     # -----------------------------------------------
     # DISCLAIMER
