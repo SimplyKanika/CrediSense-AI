@@ -114,6 +114,89 @@ def reset_inputs():
     for key, value in DEFAULT_VALUES.items():
         st.session_state[key] = value
 
+def validate_inputs(
+    age,
+    annual_income,
+    credit_score,
+    loan_amount,
+    existing_debt,
+    previous_defaults,
+    dependents
+):
+    errors = []
+    warnings = []
+
+    # Hard validation errors
+    if annual_income <= 0:
+        errors.append("Annual income must be greater than ₹0.")
+
+    if loan_amount <= 0:
+        errors.append("Loan amount must be greater than ₹0.")
+
+    if existing_debt < 0:
+        errors.append("Existing debt cannot be negative.")
+
+    if age < 18:
+        errors.append("Applicant must be at least 18 years old.")
+
+    # Financial ratios
+    dti = None
+    lti = None
+
+    if annual_income > 0:
+        dti = (existing_debt / annual_income) * 100
+        lti = (loan_amount / annual_income) * 100
+
+    # Model training range warnings
+    if age < 21 or age > 60:
+        warnings.append(
+            "Age is outside the range used to train the model (21–60 years)."
+        )
+
+    if annual_income < 200000 or annual_income > 1500000:
+        warnings.append(
+            "Annual income is outside the range used to train the model "
+            "(₹2,00,000–₹15,00,000)."
+        )
+
+    if loan_amount < 50000 or loan_amount > 1000000:
+        warnings.append(
+            "Loan amount is outside the range used to train the model "
+            "(₹50,000–₹10,00,000)."
+        )
+
+    if existing_debt > 500000:
+        warnings.append(
+            "Existing debt is outside the range used to train the model "
+            "(maximum ₹5,00,000)."
+        )
+
+    if previous_defaults > 3:
+        warnings.append(
+            "Previous defaults are outside the range used to train the model "
+            "(0–3)."
+        )
+
+    if dependents > 4:
+        warnings.append(
+            "Number of dependents are outside the range used to train the model "
+            "(0–4)."
+        )
+
+    # Financial ratio warnings
+    if dti is not None and dti > 50:
+        warnings.append(
+            f"Debt-to-income ratio is high ({dti:.1f}%). "
+            "Review the applicant's existing debt."
+        )
+
+    if lti is not None and lti > 200:
+        warnings.append(
+            f"Loan-to-income ratio is high ({lti:.1f}%). "
+            "The requested loan is large relative to annual income."
+        )
+
+    return errors, warnings, dti, lti
 
 st.header("👤 Applicant Information")
 
@@ -239,6 +322,30 @@ with button_col2:
 # ---------------------------------------------------
 
 if predict_button:
+    errors, warnings, dti, lti = validate_inputs(
+            age,
+            annual_income,
+            credit_score,
+            loan_amount,
+            existing_debt,
+            previous_defaults,
+            dependents
+        )
+
+        # Stop prediction if there are invalid inputs
+    if errors:
+            st.error("❌ Please correct the following input errors:")
+            for error in errors:
+                st.write(f"- {error}")
+            st.stop()
+
+        # Display warnings but allow prediction to continue
+    if warnings:
+            st.warning("⚠️ Input Validation Warnings")
+            for warning in warnings:
+                st.write(f"- {warning}")    
+    
+    
     employment_mapping = {
         "Salaried": 0,
         "Self Employed": 1,
@@ -297,6 +404,18 @@ if predict_button:
     # -----------------------------------------------
 
     st.header("📊 Assessment Result")
+
+    st.subheader("📋 Financial Indicators")
+
+    indicator_col1, indicator_col2 = st.columns(2)
+
+    with indicator_col1:
+        st.metric("Debt-to-Income Ratio", f"{dti:.1f}%")
+
+    with indicator_col2:
+        st.metric("Loan-to-Income Ratio", f"{lti:.1f}%")
+
+    
 
 
     result_col1, result_col2, result_col3 = st.columns(3)
