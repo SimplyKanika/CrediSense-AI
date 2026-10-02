@@ -239,7 +239,16 @@ with button_col2:
 # ---------------------------------------------------
 
 if predict_button:
+    employment_mapping = {
+        "Salaried": 0,
+        "Self Employed": 1,
+        "Unemployed": 2
+    }
+    
+    employment_encoded = employment_mapping[employment]    
 
+
+    
     input_data = pd.DataFrame({
         "age": [age],
         "annual_income": [annual_income],
