@@ -110,9 +110,14 @@ DEFAULT_VALUES = {
 
 
 def reset_inputs():
-    """Reset all applicant input fields to their default values."""
+    """Reset all applicant input fields to default values."""
     for key, value in DEFAULT_VALUES.items():
         st.session_state[key] = value
+
+
+# ---------------------------------------------------
+# INPUT VALIDATION
+# ---------------------------------------------------
 
 def validate_inputs(
     age,
@@ -123,67 +128,119 @@ def validate_inputs(
     previous_defaults,
     dependents
 ):
+    """
+    Validate applicant information before prediction.
+
+    Returns:
+        errors: Invalid input messages.
+        warnings: Messages for unusual input values.
+        dti: Debt-to-income ratio.
+        lti: Loan-to-income ratio.
+    """
+
     errors = []
     warnings = []
 
-    # Hard validation errors
+    # -----------------------------------------------
+    # HARD VALIDATION ERRORS
+    # -----------------------------------------------
+
+    if not 18 <= age <= 80:
+        errors.append(
+            "Age must be between 18 and 80 years."
+        )
+
     if annual_income <= 0:
-        errors.append("Annual income must be greater than ₹0.")
+        errors.append(
+            "Annual income must be greater than ₹0."
+        )
+
+    if not 300 <= credit_score <= 850:
+        errors.append(
+            "Credit score must be between 300 and 850."
+        )
 
     if loan_amount <= 0:
-        errors.append("Loan amount must be greater than ₹0.")
+        errors.append(
+            "Loan amount must be greater than ₹0."
+        )
 
     if existing_debt < 0:
-        errors.append("Existing debt cannot be negative.")
+        errors.append(
+            "Existing debt cannot be negative."
+        )
 
-    if age < 18:
-        errors.append("Applicant must be at least 18 years old.")
+    if not 0 <= previous_defaults <= 5:
+        errors.append(
+            "Previous defaults must be between 0 and 5."
+        )
 
-    # Financial ratios
+    if not 0 <= dependents <= 10:
+        errors.append(
+            "Number of dependents must be between 0 and 10."
+        )
+
+    # -----------------------------------------------
+    # FINANCIAL RATIO CALCULATIONS
+    # -----------------------------------------------
+
     dti = None
     lti = None
 
+    # Avoid division by zero or negative income.
     if annual_income > 0:
-        dti = (existing_debt / annual_income) * 100
-        lti = (loan_amount / annual_income) * 100
+        dti = (
+            existing_debt / annual_income
+        ) * 100
 
-    # Model training range warnings
+        lti = (
+            loan_amount / annual_income
+        ) * 100
+
+    # -----------------------------------------------
+    # MODEL TRAINING RANGE WARNINGS
+    # -----------------------------------------------
+
     if age < 21 or age > 60:
         warnings.append(
-            "Age is outside the range used to train the model (21–60 years)."
+            "Age is outside the model's stated training "
+            "range (21–60 years)."
         )
 
     if annual_income < 200000 or annual_income > 1500000:
         warnings.append(
-            "Annual income is outside the range used to train the model "
-            "(₹2,00,000–₹15,00,000)."
+            "Annual income is outside the model's stated "
+            "training range (₹2,00,000–₹15,00,000)."
         )
 
     if loan_amount < 50000 or loan_amount > 1000000:
         warnings.append(
-            "Loan amount is outside the range used to train the model "
-            "(₹50,000–₹10,00,000)."
+            "Loan amount is outside the model's stated "
+            "training range (₹50,000–₹10,00,000)."
         )
 
     if existing_debt > 500000:
         warnings.append(
-            "Existing debt is outside the range used to train the model "
-            "(maximum ₹5,00,000)."
+            "Existing debt exceeds the model's stated "
+            "training maximum of ₹5,00,000."
         )
 
     if previous_defaults > 3:
         warnings.append(
-            "Previous defaults are outside the range used to train the model "
-            "(0–3)."
+            "Previous defaults exceed the model's stated "
+            "training range (0–3)."
         )
 
     if dependents > 4:
         warnings.append(
-            "Number of dependents are outside the range used to train the model "
-            "(0–4)."
+            "Number of dependents exceeds the model's "
+            "stated training range (0–4)."
         )
 
-    # Financial ratio warnings
+    # -----------------------------------------------
+    # FINANCIAL RATIO WARNINGS
+    # -----------------------------------------------
+
     if dti is not None and dti > 50:
         warnings.append(
             f"Debt-to-income ratio is high ({dti:.1f}%). "
@@ -193,10 +250,16 @@ def validate_inputs(
     if lti is not None and lti > 200:
         warnings.append(
             f"Loan-to-income ratio is high ({lti:.1f}%). "
-            "The requested loan is large relative to annual income."
+            "The requested loan is large relative "
+            "to annual income."
         )
 
     return errors, warnings, dti, lti
+
+
+# ---------------------------------------------------
+# APPLICANT INFORMATION
+# ---------------------------------------------------
 
 st.header("👤 Applicant Information")
 
@@ -317,45 +380,65 @@ with button_col2:
         on_click=reset_inputs
     )
 
+
 # ---------------------------------------------------
 # PREDICTION
 # ---------------------------------------------------
 
 if predict_button:
+
+    # Validate inputs before making a prediction.
     errors, warnings, dti, lti = validate_inputs(
-            age,
-            annual_income,
-            credit_score,
-            loan_amount,
-            existing_debt,
-            previous_defaults,
-            dependents
+        age,
+        annual_income,
+        credit_score,
+        loan_amount,
+        existing_debt,
+        previous_defaults,
+        dependents
+    )
+
+    # -----------------------------------------------
+    # DISPLAY VALIDATION ERRORS
+    # -----------------------------------------------
+
+    if errors:
+
+        st.error(
+            "❌ Please correct the following input errors:"
         )
 
-        # Stop prediction if there are invalid inputs
-    if errors:
-            st.error("❌ Please correct the following input errors:")
-            for error in errors:
-                st.write(f"- {error}")
-            st.stop()
+        for error in errors:
+            st.write(f"- {error}")
 
-        # Display warnings but allow prediction to continue
+        # Stop prediction when inputs are invalid.
+        st.stop()
+
+    # -----------------------------------------------
+    # DISPLAY VALIDATION WARNINGS
+    # -----------------------------------------------
+
     if warnings:
-            st.warning("⚠️ Input Validation Warnings")
-            for warning in warnings:
-                st.write(f"- {warning}")    
-    
-    
+
+        st.warning(
+            "⚠️ Input Validation Warnings"
+        )
+
+        for warning in warnings:
+            st.write(f"- {warning}")
+
+    # -----------------------------------------------
+    # PREPARE INPUT DATA
+    # -----------------------------------------------
+
     employment_mapping = {
         "Salaried": 0,
         "Self Employed": 1,
         "Unemployed": 2
     }
-    
-    employment_encoded = employment_mapping[employment]    
 
+    employment_encoded = employment_mapping[employment]
 
-    
     input_data = pd.DataFrame({
         "age": [age],
         "annual_income": [annual_income],
@@ -368,7 +451,6 @@ if predict_button:
         "dependents": [dependents]
     })
 
-
     # -----------------------------------------------
     # MAKE PREDICTION
     # -----------------------------------------------
@@ -377,13 +459,13 @@ if predict_button:
 
     probabilities = model.predict_proba(input_data)[0]
 
+    # Preserve the existing model's class ordering.
     approval_probability = probabilities[1] * 100
 
     rejection_probability = probabilities[0] * 100
 
-
     # -----------------------------------------------
-    # DETERMINE RISK
+    # DETERMINE RISK LEVEL
     # -----------------------------------------------
 
     if approval_probability >= 75:
@@ -398,9 +480,8 @@ if predict_button:
 
         risk_level = "HIGH"
 
-
     # -----------------------------------------------
-    # RESULT
+    # ASSESSMENT RESULT
     # -----------------------------------------------
 
     st.header("📊 Assessment Result")
@@ -410,16 +491,20 @@ if predict_button:
     indicator_col1, indicator_col2 = st.columns(2)
 
     with indicator_col1:
-        st.metric("Debt-to-Income Ratio", f"{dti:.1f}%")
+
+        st.metric(
+            "Debt-to-Income Ratio",
+            f"{dti:.1f}%"
+        )
 
     with indicator_col2:
-        st.metric("Loan-to-Income Ratio", f"{lti:.1f}%")
 
-    
-
+        st.metric(
+            "Loan-to-Income Ratio",
+            f"{lti:.1f}%"
+        )
 
     result_col1, result_col2, result_col3 = st.columns(3)
-
 
     with result_col1:
 
@@ -428,14 +513,12 @@ if predict_button:
             f"{approval_probability:.1f}%"
         )
 
-
     with result_col2:
 
         st.metric(
             "Risk Level",
             risk_level
         )
-
 
     with result_col3:
 
@@ -448,7 +531,6 @@ if predict_button:
             "Recommendation",
             recommendation
         )
-
 
     # -----------------------------------------------
     # RESULT MESSAGE
@@ -467,7 +549,6 @@ if predict_button:
             "🔴 The application requires additional "
             "review due to elevated predicted risk."
         )
-
 
     # -----------------------------------------------
     # PROBABILITY CHART
@@ -490,16 +571,13 @@ if predict_button:
         probability_df.set_index("Outcome")
     )
 
-
     # -----------------------------------------------
     # RISK FACTORS
     # -----------------------------------------------
 
     st.subheader("🔎 Key Risk Factors")
 
-
     factors = []
-
 
     if credit_score >= 700:
 
@@ -519,7 +597,6 @@ if predict_button:
             "ℹ️ Credit score is in the moderate range."
         )
 
-
     if annual_income >= loan_amount * 2:
 
         factors.append(
@@ -534,7 +611,6 @@ if predict_button:
             "with annual income."
         )
 
-
     if existing_debt < annual_income * 0.2:
 
         factors.append(
@@ -548,7 +624,6 @@ if predict_button:
             "financial burden."
         )
 
-
     if previous_defaults == 0:
 
         factors.append(
@@ -560,7 +635,6 @@ if predict_button:
         factors.append(
             "⚠️ Previous payment defaults increase risk."
         )
-
 
     if employment == "Salaried":
 
@@ -583,54 +657,55 @@ if predict_button:
             "credit risk."
         )
 
-
     for factor in factors:
-
         st.write(factor)
 
-        # Downloadable assessment report
+    # -----------------------------------------------
+    # DOWNLOADABLE ASSESSMENT REPORT
+    # -----------------------------------------------
+
     st.subheader("📥 Download Assessment Report")
 
     report_text = f"""
-    CREDISENSE AI — CREDIT ASSESSMENT REPORT
-    ========================================
+CREDISENSE AI — CREDIT ASSESSMENT REPORT
+========================================
 
-    Applicant Information
-    ---------------------
-    Age: {age}
-    Annual Income: ₹{annual_income:,.0f}
-    Credit Score: {credit_score}
-    Loan Amount: ₹{loan_amount:,.0f}
-    Loan Term: {loan_term} months
-    Existing Debt: ₹{existing_debt:,.0f}
-    Employment: {employment}
-    Previous Defaults: {previous_defaults}
-    Dependents: {dependents}
+Applicant Information
+---------------------
+Age: {age}
+Annual Income: ₹{annual_income:,.0f}
+Credit Score: {credit_score}
+Loan Amount: ₹{loan_amount:,.0f}
+Loan Term: {loan_term} months
+Existing Debt: ₹{existing_debt:,.0f}
+Employment: {employment}
+Previous Defaults: {previous_defaults}
+Dependents: {dependents}
 
-    Financial Indicators
-    --------------------
-    Debt-to-Income Ratio: {dti:.1f}%
-    Loan-to-Income Ratio: {lti:.1f}%
+Financial Indicators
+--------------------
+Debt-to-Income Ratio: {dti:.1f}%
+Loan-to-Income Ratio: {lti:.1f}%
 
-    Assessment
-    ----------
-    Approval Probability: {approval_probability:.1f}%
-    Risk Level: {risk_level}
-    Recommendation: {recommendation}
+Assessment
+----------
+Approval Probability: {approval_probability:.1f}%
+Risk Level: {risk_level}
+Recommendation: {recommendation}
 
-    Risk Factors
-    ------------
-    """
+Risk Factors
+------------
+"""
 
     for factor in factors:
         report_text += f"- {factor}\n"
 
     report_text += """
-    DISCLAIMER
-    ----------
-    This is an educational ML prototype using synthetic training data
-    and should not be used for actual lending decisions.
-    """
+DISCLAIMER
+----------
+This is an educational ML prototype using synthetic training data
+and should not be used for actual lending decisions.
+"""
 
     st.download_button(
         label="📥 Download Assessment Report",
@@ -648,8 +723,13 @@ if predict_button:
         "learning prototype using synthetic training data. "
         "It should not be used for actual lending decisions."
     )
-    
+
     st.divider()
+
+
+# ---------------------------------------------------
+# MODEL INFORMATION
+# ---------------------------------------------------
 
 st.header("📈 Model Information")
 
